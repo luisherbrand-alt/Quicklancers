@@ -58,9 +58,11 @@ initDB().catch(err => console.error('DB init error:', err.message));
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  family: 4,
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  tls: { rejectUnauthorized: false },
+  socketOptions: { family: 4 },
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
@@ -346,8 +348,8 @@ const reviews = [
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-app.get('/api/categories', (req, res) => {
-  const userGigs = db.prepare('SELECT category FROM freelancer_gigs').all();
+app.get('/api/categories', async (req, res) => {
+  const { rows: userGigs } = await pool.query('SELECT category FROM freelancer_gigs');
   const result = categories.map(cat => {
     const mockCount = gigs.filter(g => g.category === cat.slug).length;
     const userCount = userGigs.filter(g => g.category === cat.slug).length;
