@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../App.jsx';
 import './Auth.css';
 
 export default function Register() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,35 +26,19 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message); setLoading(false); return; }
-      setDone(true);
+      // Auto-login after register
+      const loginRes = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
+      const loginData = await loginRes.json();
+      if (loginRes.ok) { login(loginData.user); navigate('/onboarding'); return; }
+      navigate('/login');
     } catch {
       setError('Network error. Please try again.');
       setLoading(false);
     }
-  }
-
-  if (done) {
-    return (
-      <div className="auth-page">
-        <div className="auth-card" style={{ textAlign: 'center' }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: '#f0fdf7', border: '2px solid #1dbf73',
-            color: '#1dbf73', fontSize: 28,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px',
-          }}>✉</div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Check your email</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>
-            We sent a verification link to <strong>{form.email}</strong>.<br />
-            Click the link in that email to activate your account.
-          </p>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
-            Already verified? <Link to="/login" className="form-link">Sign in</Link>
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return (
