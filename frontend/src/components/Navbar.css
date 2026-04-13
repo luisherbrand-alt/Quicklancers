@@ -408,6 +408,41 @@
   background: #f0fdf7;
 }
 
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .navbar__inner {
+    gap: 8px;
+    padding: 0 16px;
+  }
+
+  /* Hide search bar on mobile */
+  .navbar__search {
+    display: none;
+  }
+
+  /* Hide "Sign In" ghost button — keep only "Join Free" */
+  .navbar__nav .btn-ghost {
+    display: none;
+  }
+
+  /* Hide "Browse" text link */
+  .navbar__nav .navbar__link {
+    display: none;
+  }
+
+  /* Shrink the Join Free button so it fits */
+  .navbar__nav .btn-primary.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  /* Shrink username label in avatar button */
+  .navbar__username {
+    display: none;
+  }
+}
+
 /* Transparent navbar auth buttons */
 .navbar--transparent .btn-ghost {
   color: #fff;
