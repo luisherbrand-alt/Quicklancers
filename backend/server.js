@@ -545,7 +545,6 @@ app.post('/api/auth/login', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM users WHERE email = $1 AND password = $2', [email, password]);
   const user = rows[0];
   if (!user) return res.status(401).json({ message: 'Invalid email or password' });
-  if (!user.email_verified) return res.status(403).json({ message: 'Please verify your email before logging in. Check your inbox for the verification link.' });
   const { password: _p, verify_token: _t, ...safeUser } = user;
   sendNotification(
     '🔑 User logged in on Quicklancers',
