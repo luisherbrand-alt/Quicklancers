@@ -5,7 +5,7 @@ const { Resend } = require('resend');
 const { Pool } = require('pg');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -58,6 +58,7 @@ async function initDB() {
 initDB().catch(err => console.error('DB init error:', err.message));
 
 function sendEmail({ to, subject, html, text }) {
+  if (!resend) return;
   resend.emails.send({
     from: 'Quicklancers <onboarding@resend.dev>',
     to,
@@ -488,8 +489,8 @@ app.post('/api/auth/register', async (req, res) => {
 
   const token = require('crypto').randomBytes(32).toString('hex');
   await pool.query(
-    'INSERT INTO users (name, email, password, role, email_verified, verify_token) VALUES ($1,$2,$3,$4,0,$5)',
-    [name, email, password, 'buyer', token]
+    'INSERT INTO users (name, email, password, role, email_verified, verify_token) VALUES ($1,$2,$3,$4,$5,$6)',
+    [name, email, password, 'buyer', resend ? 0 : 1, token]
   );
 
   const origin = req.headers.origin || 'http://localhost:3000';
