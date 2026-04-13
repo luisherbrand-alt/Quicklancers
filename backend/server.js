@@ -2,55 +2,59 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-const db = new Database(path.join(__dirname, 'users.db'));
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    role TEXT DEFAULT 'buyer'
-  )
-`);
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT DEFAULT 'buyer',
+      email_verified INTEGER DEFAULT 0,
+      verify_token TEXT,
+      reset_token TEXT,
+      reset_token_expiry BIGINT
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS freelancer_gigs (
+      id SERIAL PRIMARY KEY,
+      "userId" INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      username TEXT NOT NULL,
+      category TEXT NOT NULL,
+      bio TEXT NOT NULL,
+      skills TEXT NOT NULL,
+      "hourlyRate" TEXT,
+      method TEXT,
+      "linkedinUrl" TEXT,
+      "createdAt" TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS'),
+      photos TEXT DEFAULT '[]',
+      title TEXT DEFAULT '',
+      extras TEXT DEFAULT '[]'
+    )
+  `);
+  // Insert demo user if not exists
+  await pool.query(`
+    INSERT INTO users (name, email, password, role, email_verified)
+    VALUES ('Demo User', 'demo@quicklancer.com', 'password123', 'buyer', 1)
+    ON CONFLICT (email) DO NOTHING
+  `);
+  console.log('Database ready');
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS freelancer_gigs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    userId INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    username TEXT NOT NULL,
-    category TEXT NOT NULL,
-    bio TEXT NOT NULL,
-    skills TEXT NOT NULL,
-    hourlyRate TEXT,
-    method TEXT,
-    linkedinUrl TEXT,
-    createdAt TEXT DEFAULT (datetime('now'))
-  )
-`);
-
-// Migrate: add columns if they don't exist yet
-try { db.exec(`ALTER TABLE freelancer_gigs ADD COLUMN photos TEXT DEFAULT '[]'`); } catch (_) {}
-try { db.exec(`ALTER TABLE freelancer_gigs ADD COLUMN title TEXT DEFAULT ''`); } catch (_) {}
-try { db.exec(`ALTER TABLE freelancer_gigs ADD COLUMN extras TEXT DEFAULT '[]'`); } catch (_) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0`); } catch (_) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN verify_token TEXT`); } catch (_) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN reset_token TEXT`); } catch (_) {}
-try { db.exec(`ALTER TABLE users ADD COLUMN reset_token_expiry INTEGER`); } catch (_) {}
-
-// Migrate: insert demo user if not exists (pre-verified)
-db.prepare(`
-  INSERT OR IGNORE INTO users (name, email, password, role, email_verified)
-  VALUES ('Demo User', 'demo@quicklancer.com', 'password123', 'buyer', 1)
-`).run();
-// Ensure existing users (including demo) are marked verified so they aren't locked out
-db.prepare(`UPDATE users SET email_verified = 1 WHERE email_verified IS NULL OR email_verified = 0`).run();
+initDB().catch(err => console.error('DB init error:', err.message));
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -349,14 +353,15 @@ app.get('/api/categories', (req, res) => {
   res.json(result);
 });
 
-app.post('/api/freelancer/gig', (req, res) => {
+app.post('/api/freelancer/gig', async (req, res) => {
   const { userId, name, username, category, title, bio, skills, hourlyRate, method, linkedinUrl, photos, extras } = req.body;
   if (!userId || !category || !name) return res.status(400).json({ message: 'Missing fields' });
   try {
-    db.prepare(`
-      INSERT INTO freelancer_gigs (userId, name, username, category, title, bio, skills, hourlyRate, method, linkedinUrl, photos, extras)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(userId, name, username || name, category, title || '', bio || '', skills || '', hourlyRate || '', method || '', linkedinUrl || '', JSON.stringify(photos || []), JSON.stringify(extras || []));
+    await pool.query(
+      `INSERT INTO freelancer_gigs ("userId", name, username, category, title, bio, skills, "hourlyRate", method, "linkedinUrl", photos, extras)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+      [userId, name, username || name, category, title || '', bio || '', skills || '', hourlyRate || '', method || '', linkedinUrl || '', JSON.stringify(photos || []), JSON.stringify(extras || [])]
+    );
   } catch (err) {
     console.error('Failed to insert gig:', err.message);
     return res.status(500).json({ message: err.message });
@@ -375,12 +380,12 @@ const CATEGORY_COLORS = {
   'ai-services': '#7c3aed',
 };
 
-app.get('/api/gigs', (req, res) => {
+app.get('/api/gigs', async (req, res) => {
   const { category, search, sort } = req.query;
   let result = gigs.map(g => ({ ...g, seller: sellers.find(s => s.id === g.sellerId) }));
 
   // Merge user-created freelancer gigs from DB
-  const userGigs = db.prepare('SELECT * FROM freelancer_gigs').all();
+  const { rows: userGigs } = await pool.query('SELECT * FROM freelancer_gigs');
   userGigs.forEach(ug => {
     const skillList = ug.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     result.push({
@@ -437,11 +442,12 @@ app.get('/api/gigs', (req, res) => {
   res.json(result);
 });
 
-app.get('/api/gigs/:id', (req, res) => {
+app.get('/api/gigs/:id', async (req, res) => {
   const rawId = req.params.id;
   // User-created gig
   if (rawId.startsWith('u_')) {
-    const ug = db.prepare('SELECT * FROM freelancer_gigs WHERE id = ?').get(rawId.replace('u_', ''));
+    const { rows } = await pool.query('SELECT * FROM freelancer_gigs WHERE id = $1', [rawId.replace('u_', '')]);
+    const ug = rows[0];
     if (!ug) return res.status(404).json({ message: 'Gig not found' });
     const skillList = ug.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     const color = CATEGORY_COLORS[ug.category] || '#1dbf73';
@@ -474,19 +480,20 @@ app.get('/api/sellers/:id', (req, res) => {
   res.json({ ...seller, gigs: sellerGigs });
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
     return res.status(400).json({ message: 'All fields are required' });
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-  if (existing)
+  const { rows: existing } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.length > 0)
     return res.status(400).json({ message: 'Email already registered' });
 
   const token = require('crypto').randomBytes(32).toString('hex');
-  db.prepare(
-    'INSERT INTO users (name, email, password, role, email_verified, verify_token) VALUES (?, ?, ?, ?, 0, ?)'
-  ).run(name, email, password, 'buyer', token);
+  await pool.query(
+    'INSERT INTO users (name, email, password, role, email_verified, verify_token) VALUES ($1,$2,$3,$4,0,$5)',
+    [name, email, password, 'buyer', token]
+  );
 
   const origin = req.headers.origin || 'http://localhost:3000';
   const verifyUrl = `${origin}/verify-email?token=${token}`;
@@ -523,21 +530,23 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ message: 'Account created. Please check your email to verify your account.' });
 });
 
-app.get('/api/auth/verify-email', (req, res) => {
+app.get('/api/auth/verify-email', async (req, res) => {
   const { token } = req.query;
   if (!token) return res.status(400).json({ message: 'Missing token' });
 
-  const user = db.prepare('SELECT * FROM users WHERE verify_token = ?').get(token);
+  const { rows } = await pool.query('SELECT * FROM users WHERE verify_token = $1', [token]);
+  const user = rows[0];
   if (!user) return res.status(400).json({ message: 'Invalid or expired verification link.' });
 
-  db.prepare('UPDATE users SET email_verified = 1, verify_token = NULL WHERE id = ?').run(user.id);
+  await pool.query('UPDATE users SET email_verified = 1, verify_token = NULL WHERE id = $1', [user.id]);
   const { password: _p, verify_token: _t, ...safeUser } = user;
   res.json({ user: { ...safeUser, email_verified: 1 }, token: `mock-token-${user.id}` });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password);
+  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1 AND password = $2', [email, password]);
+  const user = rows[0];
   if (!user) return res.status(401).json({ message: 'Invalid email or password' });
   if (!user.email_verified) return res.status(403).json({ message: 'Please verify your email before logging in. Check your inbox for the verification link.' });
   const { password: _p, verify_token: _t, ...safeUser } = user;
@@ -548,17 +557,18 @@ app.post('/api/auth/login', (req, res) => {
   res.json({ user: safeUser, token: `mock-token-${user.id}` });
 });
 
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: 'Email is required' });
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  const user = rows[0];
   // Always respond with success to prevent email enumeration
   if (!user) return res.json({ message: 'If that email is registered, a reset link has been sent.' });
 
   const token = require('crypto').randomBytes(32).toString('hex');
   const expiry = Date.now() + 60 * 60 * 1000; // 1 hour from now
-  db.prepare('UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?').run(token, expiry, user.id);
+  await pool.query('UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE id = $3', [token, expiry, user.id]);
 
   const origin = req.headers.origin || 'http://localhost:3000';
   const resetUrl = `${origin}/reset-password?token=${token}`;
@@ -591,19 +601,20 @@ app.post('/api/auth/forgot-password', (req, res) => {
   res.json({ message: 'If that email is registered, a reset link has been sent.' });
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password) return res.status(400).json({ message: 'Token and new password are required' });
   if (password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters' });
 
-  const user = db.prepare('SELECT * FROM users WHERE reset_token = ?').get(token);
+  const { rows } = await pool.query('SELECT * FROM users WHERE reset_token = $1', [token]);
+  const user = rows[0];
   if (!user) return res.status(400).json({ message: 'Invalid or expired reset link.' });
-  if (Date.now() > user.reset_token_expiry) {
-    db.prepare('UPDATE users SET reset_token = NULL, reset_token_expiry = NULL WHERE id = ?').run(user.id);
+  if (Date.now() > Number(user.reset_token_expiry)) {
+    await pool.query('UPDATE users SET reset_token = NULL, reset_token_expiry = NULL WHERE id = $1', [user.id]);
     return res.status(400).json({ message: 'This reset link has expired. Please request a new one.' });
   }
 
-  db.prepare('UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?').run(password, user.id);
+  await pool.query('UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2', [password, user.id]);
   res.json({ message: 'Password updated successfully.' });
 });
 
@@ -646,11 +657,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
-app.post('/api/notify/order', (req, res) => {
+app.post('/api/notify/order', async (req, res) => {
   const { sellerUserId, buyerName, gigTitle, orderId, packageName, price } = req.body;
   if (!sellerUserId || !orderId) return res.status(400).json({ message: 'Missing fields' });
 
-  const seller = db.prepare('SELECT name, email FROM users WHERE id = ?').get(sellerUserId);
+  const { rows } = await pool.query('SELECT name, email FROM users WHERE id = $1', [sellerUserId]);
+  const seller = rows[0];
   if (!seller) {
     // Mock seller — no registered email, nothing to send
     return res.json({ ok: true, skipped: true });
