@@ -1,10 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { Pool } = require('pg');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -56,26 +57,17 @@ async function initDB() {
 
 initDB().catch(err => console.error('DB init error:', err.message));
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  tls: { rejectUnauthorized: false },
-  socketOptions: { family: 4 },
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+function sendEmail({ to, subject, html, text }) {
+  resend.emails.send({
+    from: 'Quicklancers <onboarding@resend.dev>',
+    to,
+    subject,
+    html: html || `<p>${text}</p>`,
+  }).catch(err => console.error('Email error:', err.message));
+}
 
 function sendNotification(subject, text) {
-  transporter.sendMail({
-    from: process.env.GMAIL_USER,
-    to: process.env.NOTIFY_EMAIL,
-    subject,
-    text,
-  }).catch(err => console.error('Email error:', err.message));
+  sendEmail({ to: process.env.NOTIFY_EMAIL, subject, text });
 }
 
 const app = express();
@@ -503,8 +495,7 @@ app.post('/api/auth/register', async (req, res) => {
   const origin = req.headers.origin || 'http://localhost:3000';
   const verifyUrl = `${origin}/verify-email?token=${token}`;
 
-  transporter.sendMail({
-    from: `"Quicklancers" <${process.env.GMAIL_USER}>`,
+  sendEmail({
     to: email,
     subject: 'Verify your Quicklancers account',
     html: `
@@ -526,7 +517,7 @@ app.post('/api/auth/register', async (req, res) => {
         </div>
       </div>
     `,
-  }).catch(err => console.error('Verification email error:', err.message));
+  });
 
   sendNotification(
     '🆕 New user registered on Quicklancers',
@@ -578,8 +569,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   const origin = req.headers.origin || 'http://localhost:3000';
   const resetUrl = `${origin}/reset-password?token=${token}`;
 
-  transporter.sendMail({
-    from: `"Quicklancers" <${process.env.GMAIL_USER}>`,
+  sendEmail({
     to: email,
     subject: 'Reset your Quicklancers password',
     html: `
@@ -601,7 +591,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         </div>
       </div>
     `,
-  }).catch(err => console.error('Reset email error:', err.message));
+  });
 
   res.json({ message: 'If that email is registered, a reset link has been sent.' });
 });
@@ -689,16 +679,8 @@ Please log in to your Quicklancers inbox to review the order and get in touch wi
 Thank you for being part of Quicklancers!
 — The Quicklancers Team`;
 
-  transporter.sendMail({
-    from: process.env.GMAIL_USER,
-    to: seller.email,
-    subject,
-    text,
-  }).then(() => res.json({ ok: true }))
-    .catch(err => {
-      console.error('Order notify email error:', err.message);
-      res.status(500).json({ message: 'Failed to send email' });
-    });
+  sendEmail({ to: seller.email, subject, text });
+  res.json({ ok: true });
 });
 
 app.post('/api/help', (req, res) => {
@@ -706,18 +688,12 @@ app.post('/api/help', (req, res) => {
   if (!email || !subject || !message)
     return res.status(400).json({ message: 'All fields are required' });
 
-  transporter.sendMail({
-    from: process.env.GMAIL_USER,
+  sendEmail({
     to: process.env.NOTIFY_EMAIL,
-    replyTo: email,
     subject: `[Help Center] ${subject}`,
-    text: `From: ${email}\n\n${message}`,
-  }).then(() => {
-    res.json({ ok: true });
-  }).catch(err => {
-    console.error('Help email error:', err.message);
-    res.status(500).json({ message: 'Failed to send email' });
+    html: `<p><strong>From:</strong> ${email}</p><p>${message}</p>`,
   });
+  res.json({ ok: true });
 });
 
 app.listen(PORT, () => {
