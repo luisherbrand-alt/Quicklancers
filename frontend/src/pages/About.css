@@ -1,0 +1,137 @@
+.about-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0d4f3c 100%);
+  padding: 80px 24px;
+}
+
+.about-hero__inner {
+  max-width: 720px;
+}
+
+.about-hero__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 16px;
+}
+
+.about-hero__title {
+  font-size: 42px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.about-body {
+  padding: 64px 24px;
+  max-width: 760px;
+}
+
+.about-block {
+  margin-bottom: 32px;
+}
+
+.about-block p {
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.about-intro {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  line-height: 1.5 !important;
+}
+
+.about-block--highlight {
+  background: #f0fdf7;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+  padding: 28px 32px;
+}
+
+.about-block--highlight p {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.about-pillars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-pillar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.about-pillar__icon {
+  font-size: 22px;
+}
+
+/* Stats */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 48px 0;
+}
+
+.about-stat {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.about-stat__value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.about-stat__label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* CTA */
+.about-cta {
+  background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%);
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+  margin-top: 16px;
+}
+
+.about-cta h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.about-cta p {
+  font-size: 15px;
+  color: rgba(255,255,255,0.7);
+  margin: 0 0 28px;
+}
+
+@media (max-width: 640px) {
+  .about-hero__title { font-size: 28px; }
+  .about-stats { grid-template-columns: repeat(2, 1fr); }
+  .about-block--highlight { padding: 20px; }
+}

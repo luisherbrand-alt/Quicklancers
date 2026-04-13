@@ -1,0 +1,153 @@
+.pp-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0d4f3c 100%);
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.pp-hero__title {
+  font-size: 36px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 12px;
+}
+
+.pp-hero__meta {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.pp-body {
+  display: flex;
+  gap: 48px;
+  padding: 48px 24px 80px;
+  align-items: flex-start;
+}
+
+/* Table of Contents */
+.pp-toc {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 80px;
+}
+
+.pp-toc__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin: 0 0 12px;
+}
+
+.pp-toc ol {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-toc li {
+  font-size: 13px;
+}
+
+.pp-toc a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  line-height: 1.4;
+  transition: color 0.15s;
+}
+
+.pp-toc a:hover {
+  color: var(--accent);
+}
+
+/* Content */
+.pp-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.pp-content section h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pp-content section p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+
+.pp-content section p:last-child {
+  margin-bottom: 0;
+}
+
+.pp-content section ul,
+.pp-content section ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-content section li {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.pp-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pp-content a:hover {
+  text-decoration: underline;
+}
+
+/* Info card */
+.pp-card {
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pp-card p {
+  margin: 0 !important;
+  font-size: 14px !important;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pp-body {
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .pp-toc {
+    width: 100%;
+    position: static;
+  }
+
+  .pp-hero__title {
+    font-size: 28px;
+  }
+}

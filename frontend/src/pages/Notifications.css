@@ -1,0 +1,119 @@
+.notif-page {
+  padding: 40px 24px;
+  max-width: 680px;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+
+.notif-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.notif-count {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notif-empty {
+  text-align: center;
+  padding: 60px 0;
+  color: var(--text-secondary);
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: #fff;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  position: relative;
+  margin-bottom: 6px;
+}
+
+.notif-item:hover {
+  background: var(--bg-page);
+}
+
+.notif-item--unread {
+  background: #f0fdf7;
+  border-color: #bbf7d0;
+}
+
+.notif-item__avatar {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.notif-item__type-icon {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.notif-item__type-icon--message { background: #3b82f6; }
+.notif-item__type-icon--order   { background: var(--accent); }
+.notif-item__type-icon--review  { background: #f59e0b; }
+.notif-item__type-icon--promo   { background: #8b5cf6; }
+
+.notif-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 3px;
+}
+
+.notif-item__desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item__time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.notif-item__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
