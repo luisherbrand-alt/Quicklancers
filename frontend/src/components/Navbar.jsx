@@ -142,6 +142,12 @@ export default function Navbar() {
                       <Link to="/browse" className="dropdown-item" onClick={() => setMenuOpen(false)}>Browse Gigs</Link>
                       <Link to="/inbox" className="dropdown-item" onClick={() => setMenuOpen(false)}>Inbox</Link>
                       <Link to="/notifications" className="dropdown-item" onClick={() => setMenuOpen(false)}>Notifications</Link>
+                      <Link to="/seller-dashboard" className="dropdown-item dropdown-item--payout" onClick={() => setMenuOpen(false)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                        </svg>
+                        Seller Dashboard
+                      </Link>
                       <Link to="/onboarding?add=1" className="dropdown-item dropdown-item--add-service" onClick={() => setMenuOpen(false)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>

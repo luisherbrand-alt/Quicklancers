@@ -239,6 +239,18 @@
   background: var(--bg-hover);
 }
 
+.dropdown-item--payout {
+  color: var(--text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-item--payout:hover {
+  background: var(--bg-page);
+}
+
 .dropdown-item--add-service {
   color: var(--text-primary);
   font-weight: 500;

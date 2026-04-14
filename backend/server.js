@@ -4,7 +4,18 @@ const cors = require('cors');
 const { Resend } = require('resend');
 const { Pool } = require('pg');
 const Stripe = require('stripe');
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+
+// ── Stripe Client ────────────────────────────────────────────────────────────
+// All Stripe requests go through this single client instance.
+// REQUIRED: Set STRIPE_SECRET_KEY in your environment variables.
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('ERROR: STRIPE_SECRET_KEY is not set. Stripe features will not work.');
+}
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key');
+
+// Platform fee: percentage of each transaction kept by Quicklancers.
+// Change this value to adjust your marketplace's cut (e.g. 10 = 10%).
+const PLATFORM_FEE_PERCENT = 10;
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const pool = new Pool({
@@ -46,6 +57,9 @@ async function initDB() {
       extras TEXT DEFAULT '[]'
     )
   `);
+  // Migration: add stripe_account_id for Connect payouts
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_account_id TEXT`);
+
   // Insert demo user if not exists
   await pool.query(`
     INSERT INTO users (name, email, password, role, email_verified)
@@ -75,6 +89,69 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 app.use(cors());
+
+// ── Stripe Webhook ────────────────────────────────────────────────────────────
+// IMPORTANT: This route MUST be registered before express.json() because Stripe
+// signature verification requires the raw (unparsed) request body.
+//
+// Setup steps:
+// 1. In Stripe Dashboard → Developers → Webhooks → Add destination
+// 2. Select "Connected accounts" as the event source
+// 3. Enable "Thin" payload style under Advanced options
+// 4. Add these event types:
+//      v2.core.account[requirements].updated
+//      v2.core.account[.recipient].capability_status_updated
+// 5. Copy the webhook signing secret and set it as STRIPE_WEBHOOK_SECRET
+//
+// For local testing with Stripe CLI:
+//   stripe listen --thin-events 'v2.core.account[requirements].updated,v2.core.account[.recipient].capability_status_updated' --forward-thin-to http://localhost:5001/api/webhooks/stripe
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    // No secret configured — skip verification (not safe for production)
+    console.warn('STRIPE_WEBHOOK_SECRET not set — skipping webhook verification');
+    return res.json({ received: true });
+  }
+
+  let thinEvent;
+  try {
+    // parseThinEvent verifies the Stripe signature and returns a lightweight event object.
+    // The full event data is NOT included — we fetch it separately below.
+    thinEvent = stripeClient.parseThinEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ message: `Webhook error: ${err.message}` });
+  }
+
+  try {
+    // Fetch the full event from Stripe using the thin event's ID.
+    // This is required for V2 thin events — the payload only contains the ID.
+    const event = await stripeClient.v2.core.events.retrieve(thinEvent.id);
+
+    // Handle account requirements updated
+    // Triggered when regulators or card networks add new requirements for a seller.
+    if (event.type === 'v2.core.account[requirements].updated') {
+      const accountId = event.data?.object?.id;
+      console.log(`Account requirements updated for ${accountId}:`, event.data);
+      // TODO: notify the seller via email that action is required on their account
+    }
+
+    // Handle capability status changes (e.g. transfers enabled/disabled)
+    if (event.type.includes('capability_status_updated')) {
+      const accountId = event.data?.object?.id;
+      console.log(`Capability status changed for ${accountId}:`, event.data);
+      // TODO: update a "payout_enabled" flag in your DB if needed
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook handler error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.use(express.json({ limit: '50mb' }));
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
@@ -613,6 +690,129 @@ app.post('/api/auth/reset-password', async (req, res) => {
   res.json({ message: 'Password updated successfully.' });
 });
 
+// ── Stripe Connect Routes ────────────────────────────────────────────────────
+
+// POST /api/connect/onboard
+// Creates (or retrieves) a Stripe Connect Express account for a seller,
+// then returns a one-time onboarding URL for them to complete their payout setup.
+app.post('/api/connect/onboard', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ message: 'userId is required' });
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const user = rows[0];
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    let accountId = user.stripe_account_id;
+
+    if (!accountId) {
+      // Create a new Stripe Connect V2 account for this seller.
+      // We use the V2 API with 'recipient' configuration — the platform
+      // (Quicklancers) is responsible for collecting fees and covering losses.
+      // NOTE: Do NOT pass top-level type: 'express' or type: 'custom' —
+      //       capabilities are configured via the configuration object instead.
+      const account = await stripeClient.v2.core.accounts.create({
+        display_name: user.name,
+        contact_email: user.email,
+        identity: {
+          // Country where the seller's business/bank is based.
+          // 'de' = Germany. Change per seller if your platform is global.
+          country: 'de',
+        },
+        // 'express' dashboard gives sellers a hosted Stripe dashboard to view payouts.
+        dashboard: 'express',
+        defaults: {
+          responsibilities: {
+            // The platform (Quicklancers) collects fees and covers losses,
+            // not the connected seller account.
+            fees_collector: 'application',
+            losses_collector: 'application',
+          },
+        },
+        configuration: {
+          recipient: {
+            capabilities: {
+              stripe_balance: {
+                stripe_transfers: {
+                  // Request the ability to transfer funds to this seller.
+                  requested: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      accountId = account.id;
+      // Store the mapping between this user and their Stripe Connect account ID.
+      await pool.query('UPDATE users SET stripe_account_id = $1 WHERE id = $2', [accountId, userId]);
+    }
+
+    // Generate a one-time onboarding link. These expire after a short time,
+    // so always create a fresh link rather than storing them.
+    const origin = req.headers.origin || 'http://localhost:3000';
+    const accountLink = await stripeClient.v2.core.accountLinks.create({
+      account: accountId,
+      use_case: {
+        type: 'account_onboarding',
+        account_onboarding: {
+          configurations: ['recipient'],
+          // refresh_url: shown if the link expires before the seller completes onboarding.
+          refresh_url: `${origin}/seller-dashboard`,
+          // return_url: shown after the seller finishes (or skips) onboarding.
+          return_url: `${origin}/seller-dashboard?onboarded=1`,
+        },
+      },
+    });
+
+    res.json({ url: accountLink.url, accountId });
+  } catch (err) {
+    console.error('Connect onboard error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/connect/status/:userId
+// Returns the live payout status for a seller by fetching directly from the Stripe V2 API.
+// Status is never cached — always fetched fresh so it reflects current requirements.
+app.get('/api/connect/status/:userId', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT stripe_account_id FROM users WHERE id = $1', [req.params.userId]);
+    const user = rows[0];
+
+    // No Connect account yet — seller hasn't started onboarding.
+    if (!user || !user.stripe_account_id) {
+      return res.json({ connected: false });
+    }
+
+    // Retrieve the live account status from Stripe, including recipient config and requirements.
+    const account = await stripeClient.v2.core.accounts.retrieve(user.stripe_account_id, {
+      include: ['configuration.recipient', 'requirements'],
+    });
+
+    // Check if the seller can actually receive transfers (fully active).
+    const readyToReceivePayments =
+      account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status === 'active';
+
+    // Check if there are outstanding requirements that block payouts.
+    const requirementsStatus = account.requirements?.summary?.minimum_deadline?.status;
+    const onboardingComplete =
+      requirementsStatus !== 'currently_due' && requirementsStatus !== 'past_due';
+
+    res.json({
+      connected: true,
+      accountId: user.stripe_account_id,
+      readyToReceivePayments,
+      onboardingComplete,
+      requirementsStatus: requirementsStatus || 'none',
+    });
+  } catch (err) {
+    console.error('Connect status error:', err.message);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.get('/api/stats', (req, res) => {
   res.json({
     totalFreelancers: 24800,
@@ -646,8 +846,29 @@ app.post('/api/create-checkout-session', async (req, res) => {
   const discount = discountCode ? DISCOUNT_CODES[discountCode.trim().toUpperCase()] : null;
   const multiplier = discount ? (1 - discount.percent / 100) : 1;
 
+  // Look up the seller's Stripe Connect account ID (if they've completed onboarding).
+  // When present, we use a Destination Charge so the seller receives funds directly.
+  let sellerAccountId = null;
+  if (successData?.sellerId) {
+    const { rows: sellerRows } = await pool.query(
+      'SELECT stripe_account_id FROM users WHERE id = $1',
+      [successData.sellerId]
+    );
+    sellerAccountId = sellerRows[0]?.stripe_account_id || null;
+  }
+
+  // Calculate the total order value (in cents) to determine the platform fee.
+  const totalCents = lineItems.reduce(
+    (sum, item) => sum + Math.round(item.price * multiplier * 100) * (item.quantity || 1),
+    0
+  );
+
+  // Platform fee in cents (e.g. 10% of transaction).
+  // This stays with Quicklancers; the rest is transferred to the seller.
+  const platformFeeCents = Math.round(totalCents * PLATFORM_FEE_PERCENT / 100);
+
   try {
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: lineItems.map(item => ({
@@ -663,7 +884,23 @@ app.post('/api/create-checkout-session', async (req, res) => {
       success_url: `${origin}/order-success?session_id={CHECKOUT_SESSION_ID}&data=${encodeURIComponent(JSON.stringify(successData))}`,
       cancel_url: `${origin}/order-cancelled`,
       metadata: { gigTitle },
-    });
+    };
+
+    // Destination Charge: when the seller has a connected Stripe account,
+    // Stripe automatically transfers (totalCents - platformFeeCents) to the seller
+    // and keeps platformFeeCents for the platform. No manual transfers needed.
+    if (sellerAccountId) {
+      sessionParams.payment_intent_data = {
+        // The platform fee stays with Quicklancers.
+        application_fee_amount: platformFeeCents,
+        transfer_data: {
+          // The remaining funds go directly to the seller's Stripe account.
+          destination: sellerAccountId,
+        },
+      };
+    }
+
+    const session = await stripeClient.checkout.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (err) {
     console.error('Stripe checkout error:', err.message);

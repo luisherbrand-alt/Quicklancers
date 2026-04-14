@@ -1,0 +1,280 @@
+.sd-page {
+  min-height: 80vh;
+}
+
+.sd-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #0d4f3c 100%);
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.sd-hero__title {
+  font-size: 34px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+.sd-hero__sub {
+  font-size: 15px;
+  color: rgba(255,255,255,0.65);
+  margin: 0;
+}
+
+.sd-body {
+  padding: 40px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 720px;
+}
+
+/* Banner */
+.sd-banner {
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sd-banner--success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+/* Card */
+.sd-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-sm);
+}
+
+.sd-card--subtle {
+  background: var(--bg-page);
+}
+
+.sd-card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+}
+
+.sd-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+}
+
+.sd-card p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.sd-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* How it works steps */
+.sd-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.sd-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.sd-step__num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-step div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sd-step strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.sd-step span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Status block */
+.sd-status {
+  font-size: 14px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+}
+
+.sd-status--loading {
+  color: var(--text-secondary);
+}
+
+.sd-status--error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.sd-status-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sd-status-block div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sd-status-block strong {
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.sd-status-block p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.sd-status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sd-status-icon--active {
+  background: #f0fdf4;
+  border: 2px solid #1dbf73;
+  color: #1dbf73;
+}
+
+.sd-status-icon--warning {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  color: #d97706;
+}
+
+.sd-status-icon--pending {
+  background: #f0f9ff;
+  border: 2px solid #0ea5e9;
+  color: #0ea5e9;
+  font-size: 18px;
+}
+
+.sd-account-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 10px 14px;
+  background: var(--bg-page);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.sd-account-id code {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.sd-done-note {
+  font-size: 14px;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin: 0;
+}
+
+/* Fee table */
+.sd-fee-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sd-fee-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.sd-fee-row:last-child {
+  border-bottom: none;
+}
+
+.sd-fee-row--deduct {
+  color: #dc2626;
+  background: #fef9f9;
+}
+
+.sd-fee-row--total {
+  font-weight: 700;
+  color: var(--text-primary);
+  background: #f0fdf4;
+}
+
+.sd-fee-note {
+  font-size: 12px !important;
+  color: var(--text-light) !important;
+  margin: 0 !important;
+}
+
+.sd-error {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .sd-hero__title { font-size: 26px; }
+  .sd-card { padding: 20px; }
+  .sd-body { padding: 24px 16px 60px; }
+}

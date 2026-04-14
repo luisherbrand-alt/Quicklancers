@@ -18,6 +18,7 @@ import OrderCancelled from './pages/OrderCancelled.jsx';
 import PrivacyPolicy from './pages/PrivacyPolicy.jsx';
 import TermsOfService from './pages/TermsOfService.jsx';
 import VerifyEmail from './pages/VerifyEmail.jsx';
+import SellerDashboard from './pages/SellerDashboard.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 
@@ -93,6 +94,7 @@ export default function App() {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/seller-dashboard" element={<SellerDashboard />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
