@@ -622,12 +622,29 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// Discount codes — add or remove codes here
+const DISCOUNT_CODES = {
+  'WELCOME10': { percent: 10, label: '10% off' },
+  'LAUNCH20':  { percent: 20, label: '20% off' },
+  'QUICK50':   { percent: 50, label: '50% off' },
+};
+
+app.post('/api/validate-discount', (req, res) => {
+  const code = (req.body.code || '').trim().toUpperCase();
+  const discount = DISCOUNT_CODES[code];
+  if (!discount) return res.status(400).json({ message: 'Invalid discount code' });
+  res.json({ code, percent: discount.percent, label: discount.label });
+});
+
 app.post('/api/create-checkout-session', async (req, res) => {
-  const { lineItems, gigTitle, successData } = req.body;
-  // lineItems: [{ name, price (in dollars), quantity }]
+  const { lineItems, gigTitle, successData, discountCode } = req.body;
   if (!lineItems || lineItems.length === 0) return res.status(400).json({ message: 'No items' });
 
   const origin = req.headers.origin || 'http://localhost:3000';
+
+  // Apply discount if valid code provided
+  const discount = discountCode ? DISCOUNT_CODES[discountCode.trim().toUpperCase()] : null;
+  const multiplier = discount ? (1 - discount.percent / 100) : 1;
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -636,8 +653,10 @@ app.post('/api/create-checkout-session', async (req, res) => {
       line_items: lineItems.map(item => ({
         price_data: {
           currency: 'eur',
-          product_data: { name: item.name },
-          unit_amount: Math.round(item.price * 100),
+          product_data: {
+            name: item.name + (discount ? ` (${discount.label})` : ''),
+          },
+          unit_amount: Math.round(item.price * multiplier * 100),
         },
         quantity: item.quantity || 1,
       })),

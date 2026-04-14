@@ -200,25 +200,122 @@
   flex-shrink: 0;
 }
 
-/* Total + confirm */
-.order-popup__total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
+/* Discount code */
+.order-popup__discount {
+  padding: 12px 24px;
   flex-shrink: 0;
 }
 
-.order-popup__total span {
+.order-popup__discount-row {
+  display: flex;
+  gap: 8px;
+}
+
+.order-popup__discount-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.order-popup__discount-input:focus {
+  border-color: var(--accent);
+}
+
+.order-popup__discount-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.order-popup__discount-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.order-popup__discount-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.order-popup__discount-error {
+  font-size: 12px;
+  color: #dc2626;
+  margin: 6px 0 0;
+}
+
+.order-popup__discount-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #15803d;
+}
+
+.order-popup__discount-remove {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: #dc2626;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font);
+}
+
+.order-popup__discount-remove:hover {
+  text-decoration: underline;
+}
+
+.order-popup__total-discount {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+/* Total + confirm */
+.order-popup__total {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.order-popup__total > span,
+.order-popup__total > strong {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.order-popup__total > span {
   font-size: 14px;
   color: var(--text-secondary);
 }
 
-.order-popup__total strong {
+.order-popup__total > strong {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-primary);
 }
+
 
 .order-popup__error {
   margin: 0 24px;

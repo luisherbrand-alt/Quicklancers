@@ -28,6 +28,10 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
   const [selected, setSelected] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [discountInput, setDiscountInput] = useState('');
+  const [discount, setDiscount] = useState(null); // { code, percent, label }
+  const [discountError, setDiscountError] = useState('');
+  const [discountLoading, setDiscountLoading] = useState(false);
 
   function toggle(id) {
     setSelected(prev => {
@@ -39,7 +43,29 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
 
   const selectedExtras = allExtras.filter(e => selected.has(e.id));
   const extrasTotal = selectedExtras.reduce((sum, e) => sum + e.price, 0);
-  const total = pkg.price + extrasTotal;
+  const subtotal = pkg.price + extrasTotal;
+  const discountAmount = discount ? subtotal * (discount.percent / 100) : 0;
+  const total = subtotal - discountAmount;
+
+  async function applyDiscount() {
+    if (!discountInput.trim()) return;
+    setDiscountLoading(true);
+    setDiscountError('');
+    setDiscount(null);
+    try {
+      const res = await fetch('/api/validate-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: discountInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setDiscountError(data.message); }
+      else { setDiscount(data); }
+    } catch {
+      setDiscountError('Could not apply code. Try again.');
+    }
+    setDiscountLoading(false);
+  }
 
   async function handleCheckout() {
     setLoading(true);
@@ -63,7 +89,7 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineItems, gigTitle: gig.title, successData }),
+        body: JSON.stringify({ lineItems, gigTitle: gig.title, successData, discountCode: discount?.code }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to create checkout');
@@ -128,7 +154,48 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
 
         <div className="order-popup__divider" />
 
+        {/* Discount code */}
+        <div className="order-popup__discount">
+          {!discount ? (
+            <>
+              <div className="order-popup__discount-row">
+                <input
+                  type="text"
+                  className="order-popup__discount-input"
+                  placeholder="Discount code"
+                  value={discountInput}
+                  onChange={e => { setDiscountInput(e.target.value); setDiscountError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && applyDiscount()}
+                />
+                <button
+                  className="order-popup__discount-btn"
+                  onClick={applyDiscount}
+                  disabled={discountLoading || !discountInput.trim()}
+                >
+                  {discountLoading ? '…' : 'Apply'}
+                </button>
+              </div>
+              {discountError && <p className="order-popup__discount-error">{discountError}</p>}
+            </>
+          ) : (
+            <div className="order-popup__discount-applied">
+              <span>🎉 <strong>{discount.code}</strong> — {discount.label}</span>
+              <button className="order-popup__discount-remove" onClick={() => { setDiscount(null); setDiscountInput(''); }}>
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="order-popup__divider" />
+
         <div className="order-popup__total">
+          {discount && (
+            <div className="order-popup__total-discount">
+              <span>Discount ({discount.percent}%)</span>
+              <span style={{ color: '#16a34a' }}>−€{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
           <span>Order total</span>
           <strong>€{total.toFixed(2)}</strong>
         </div>
