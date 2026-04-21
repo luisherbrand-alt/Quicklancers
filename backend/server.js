@@ -832,6 +832,11 @@ app.get('/api/connect/status/:userId', async (req, res) => {
   }
 });
 
+app.get('/api/admin/reset-stripe', async (_req, res) => {
+  await pool.query('UPDATE users SET stripe_account_id = NULL, payout_enabled = false');
+  res.json({ ok: true, message: 'Cleared stripe_account_id for all users' });
+});
+
 app.get('/api/stats', (req, res) => {
   res.json({
     totalFreelancers: 24800,
