@@ -97,6 +97,7 @@ export default function Browse() {
   useEffect(() => {
     if (category) setActiveCategory(category);
     else setActiveCategory('all');
+    window.scrollTo(0, 0);
   }, [category]);
 
   function handleSearch(e) {
