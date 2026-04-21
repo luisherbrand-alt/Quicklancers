@@ -840,6 +840,15 @@ app.get('/api/admin/reset-stripe', async (_req, res) => {
   res.json({ ok: true, message: 'Cleared stripe_account_id for all users' });
 });
 
+app.get('/api/admin/test-stripe', async (_req, res) => {
+  try {
+    const balance = await stripeClient.balance.retrieve();
+    res.json({ ok: true, currency: balance.available?.[0]?.currency });
+  } catch (err) {
+    res.json({ ok: false, error: err.message, type: err.type, code: err.code });
+  }
+});
+
 app.get('/api/stats', (req, res) => {
   res.json({
     totalFreelancers: 24800,
