@@ -212,24 +212,6 @@ export default function Home() {
         <div className="hero__overlay" />
       </section>
 
-      {/* Stats bar */}
-      {stats && (
-        <section className="stats-bar">
-          <div className="container stats-bar__inner">
-            {[
-              { value: stats.totalFreelancers.toLocaleString() + '+', label: 'Expert Freelancers' },
-              { value: stats.totalClients.toLocaleString() + '+', label: 'Happy Clients' },
-              { value: stats.totalGigs.toLocaleString() + '+', label: 'Services Available' },
-              { value: stats.countriesServed + '+', label: 'Countries Served' },
-            ].map(s => (
-              <div key={s.label} className="stat-item">
-                <span className="stat-value">{s.value}</span>
-                <span className="stat-label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Categories */}
       <section className="section">
