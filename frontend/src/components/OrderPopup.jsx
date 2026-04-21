@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './OrderPopup.css';
 
 const FIXED_EXTRAS = [
@@ -17,6 +18,7 @@ const FIXED_EXTRAS = [
 ];
 
 export default function OrderPopup({ gig, pkg, buyer, onClose }) {
+  const navigate = useNavigate();
   const sellerExtras = (gig.extras || []).map((e, i) => ({
     id: `seller-${i}`,
     title: e.title,
@@ -26,8 +28,6 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
 
   const allExtras = [...FIXED_EXTRAS, ...sellerExtras];
   const [selected, setSelected] = useState(new Set());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [discountInput, setDiscountInput] = useState('');
   const [discount, setDiscount] = useState(null); // { code, percent, label }
   const [discountError, setDiscountError] = useState('');
@@ -67,16 +67,7 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
     setDiscountLoading(false);
   }
 
-  async function handleCheckout() {
-    setLoading(true);
-    setError('');
-
-    const lineItems = [
-      { name: `${gig.title} — ${pkg.name}`, price: pkg.price, quantity: 1 },
-      ...selectedExtras.map(e => ({ name: e.title, price: e.price, quantity: 1 })),
-    ];
-
-    // Pass order data through so the success page can complete the order
+  function handleCheckout() {
     const successData = {
       buyerId: buyer.id,
       sellerId: gig.seller.id,
@@ -84,21 +75,15 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
       packageName: pkg.name,
       price: pkg.price,
     };
-
-    try {
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineItems, gigTitle: gig.title, successData, discountCode: discount?.code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to create checkout');
-      // Redirect to Stripe hosted checkout
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
+    onClose();
+    navigate('/checkout', {
+      state: {
+        total,
+        gigTitle: gig.title,
+        packageName: pkg.name,
+        successData,
+      },
+    });
   }
 
   return (
@@ -200,14 +185,11 @@ export default function OrderPopup({ gig, pkg, buyer, onClose }) {
           <strong>€{total.toFixed(2)}</strong>
         </div>
 
-        {error && <p className="order-popup__error">{error}</p>}
-
         <button
           className="btn btn-primary btn-lg order-popup__confirm"
           onClick={handleCheckout}
-          disabled={loading}
         >
-          {loading ? 'Redirecting to payment…' : `Pay with Stripe  €${total.toFixed(2)}`}
+          Pay with Stripe  €{total.toFixed(2)}
         </button>
       </div>
     </div>

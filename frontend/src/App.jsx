@@ -21,6 +21,7 @@ import VerifyEmail from './pages/VerifyEmail.jsx';
 import SellerDashboard from './pages/SellerDashboard.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
+import MockCheckout from './pages/MockCheckout.jsx';
 
 export const AuthContext = createContext(null);
 
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/seller-dashboard" element={<SellerDashboard />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/checkout" element={<MockCheckout />} />
             </Routes>
           </main>
           <Footer />

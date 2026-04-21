@@ -1,0 +1,308 @@
+* { box-sizing: border-box; }
+
+.mck-page {
+  display: flex;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ── Left summary panel ── */
+.mck-summary {
+  width: 380px;
+  flex-shrink: 0;
+  background: #f6f9fc;
+  border-right: 1px solid #e3e8ef;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mck-summary__inner {
+  width: 340px;
+  padding: 48px 24px 48px 0;
+}
+
+.mck-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 40px;
+}
+
+.mck-summary__amount {
+  font-size: 40px;
+  font-weight: 700;
+  color: #1a1a2e;
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+}
+
+.mck-summary__label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 28px;
+  line-height: 1.4;
+}
+
+.mck-summary__divider {
+  height: 1px;
+  background: #e3e8ef;
+  margin: 20px 0;
+}
+
+.mck-summary__line {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.mck-summary__line--total {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.mck-summary__secure {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+.mck-summary__secure strong {
+  color: #635bff;
+}
+
+/* ── Right form panel ── */
+.mck-form-wrap {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  background: #fff;
+}
+
+.mck-form-inner {
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 40px 48px 48px;
+}
+
+.mck-form__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 28px 0;
+}
+
+/* ── Fields ── */
+.mck-field {
+  margin-bottom: 18px;
+}
+
+.mck-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.mck-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+  color: #111827;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.mck-input:focus {
+  border-color: #635bff;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
+}
+
+.mck-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Card group */
+.mck-card-group {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mck-card-group:focus-within {
+  border-color: #635bff;
+  box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
+}
+
+.mck-card-number-wrap {
+  position: relative;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.mck-input--card {
+  border: none;
+  border-radius: 0;
+  padding-right: 90px;
+  box-shadow: none !important;
+}
+
+.mck-input--card:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mck-card-icons {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.mck-card-row2 {
+  display: flex;
+}
+
+.mck-input--expiry {
+  border: none;
+  border-right: 1px solid #d1d5db;
+  border-radius: 0;
+  flex: 1;
+  box-shadow: none !important;
+}
+
+.mck-input--expiry:focus {
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+
+.mck-cvc-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.mck-input--cvc {
+  border: none;
+  border-radius: 0;
+  width: 100%;
+  padding-right: 36px;
+  box-shadow: none !important;
+}
+
+.mck-input--cvc:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mck-cvc-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* ── Pay button ── */
+.mck-pay-btn {
+  width: 100%;
+  padding: 13px;
+  background: #635bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.mck-pay-btn:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.mck-pay-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.mck-pay-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mck-pay-btn__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Spinner */
+.mck-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: mck-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes mck-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Footer ── */
+.mck-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #9ca3af;
+  margin-top: 20px;
+  line-height: 1.5;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .mck-page {
+    flex-direction: column;
+  }
+
+  .mck-summary {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #e3e8ef;
+    justify-content: flex-start;
+  }
+
+  .mck-summary__inner {
+    width: 100%;
+    padding: 28px 20px;
+  }
+
+  .mck-summary__amount {
+    font-size: 30px;
+  }
+
+  .mck-form-inner {
+    padding: 28px 20px;
+  }
+}
