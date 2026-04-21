@@ -183,7 +183,7 @@ export default function Home() {
             100% Cashback Guarantee — Not happy? Get your money back.
           </div>
           <p className="hero__sub">
-            Trusted by 70,000+ businesses. Top talent, on demand.
+            Top talent, on demand.
           </p>
           <form className="hero__search" onSubmit={handleSearch}>
             <input
