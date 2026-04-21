@@ -59,6 +59,7 @@ async function initDB() {
   `);
   // Migration: add stripe_account_id for Connect payouts
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_account_id TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS payout_enabled BOOLEAN DEFAULT false`);
   // Migration: add avatar (base64 or URL) for profile photos
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
 
@@ -97,61 +98,94 @@ app.use(cors());
 // signature verification requires the raw (unparsed) request body.
 //
 // Setup steps:
-// 1. In Stripe Dashboard → Developers → Webhooks → Add destination
-// 2. Select "Connected accounts" as the event source
-// 3. Enable "Thin" payload style under Advanced options
-// 4. Add these event types:
-//      v2.core.account[requirements].updated
-//      v2.core.account[.recipient].capability_status_updated
-// 5. Copy the webhook signing secret and set it as STRIPE_WEBHOOK_SECRET
+// Stripe Webhook Setup (Stripe Dashboard → Developers → Webhooks → Add destination):
 //
-// For local testing with Stripe CLI:
-//   stripe listen --thin-events 'v2.core.account[requirements].updated,v2.core.account[.recipient].capability_status_updated' --forward-thin-to http://localhost:5001/api/webhooks/stripe
-app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+// Create TWO webhook endpoints (each gets its own signing secret):
+//
+// 1. V2 thin-event webhook (for seller account updates):
+//    URL:    https://<your-railway-domain>/api/webhooks/stripe/accounts
+//    Events: v2.core.account[configuration.recipient].capability_status_updated
+//    Style:  Thin (enable "Thin event payloads" under Advanced options)
+//    Secret: → set as STRIPE_WEBHOOK_SECRET in Railway env vars
+//
+// 2. V1 snapshot webhook (for payment confirmations):
+//    URL:    https://<your-railway-domain>/api/webhooks/stripe/checkout
+//    Events: checkout.session.completed
+//    Secret: → set as STRIPE_CHECKOUT_WEBHOOK_SECRET in Railway env vars
+//
+// Local testing with Stripe CLI:
+//   stripe listen --thin-events 'v2.core.account[configuration.recipient].capability_status_updated' \
+//     --forward-thin-to http://localhost:5001/api/webhooks/stripe/accounts
+//   stripe listen --events 'checkout.session.completed' \
+//     --forward-to http://localhost:5001/api/webhooks/stripe/checkout
+
+// V2 thin-event webhook — handles seller account capability changes
+app.post('/api/webhooks/stripe/accounts', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    // No secret configured — skip verification (not safe for production)
     console.warn('STRIPE_WEBHOOK_SECRET not set — skipping webhook verification');
     return res.json({ received: true });
   }
 
   let thinEvent;
   try {
-    // parseThinEvent verifies the Stripe signature and returns a lightweight event object.
-    // The full event data is NOT included — we fetch it separately below.
     thinEvent = stripeClient.parseThinEvent(req.body, sig, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('Accounts webhook signature failed:', err.message);
     return res.status(400).json({ message: `Webhook error: ${err.message}` });
   }
 
   try {
-    // Fetch the full event from Stripe using the thin event's ID.
-    // This is required for V2 thin events — the payload only contains the ID.
     const event = await stripeClient.v2.core.events.retrieve(thinEvent.id);
 
-    // Handle account requirements updated
-    // Triggered when regulators or card networks add new requirements for a seller.
-    if (event.type === 'v2.core.account[requirements].updated') {
+    if (event.type === 'v2.core.account[configuration.recipient].capability_status_updated') {
       const accountId = event.data?.object?.id;
-      console.log(`Account requirements updated for ${accountId}:`, event.data);
-      // TODO: notify the seller via email that action is required on their account
-    }
-
-    // Handle capability status changes (e.g. transfers enabled/disabled)
-    if (event.type.includes('capability_status_updated')) {
-      const accountId = event.data?.object?.id;
-      console.log(`Capability status changed for ${accountId}:`, event.data);
-      // TODO: update a "payout_enabled" flag in your DB if needed
+      const status = event.data?.object?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status;
+      console.log(`Payout capability updated for ${accountId}: ${status}`);
+      // Mark seller as payout-enabled in DB when status becomes 'active'
+      if (status === 'active' && accountId) {
+        await pool.query(
+          'UPDATE users SET payout_enabled = true WHERE stripe_account_id = $1',
+          [accountId]
+        );
+      }
     }
 
     res.json({ received: true });
   } catch (err) {
-    console.error('Webhook handler error:', err.message);
+    console.error('Accounts webhook handler error:', err.message);
     res.status(500).json({ message: err.message });
   }
+});
+
+// V1 snapshot webhook — handles completed checkout payments
+app.post('/api/webhooks/stripe/checkout', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_CHECKOUT_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.warn('STRIPE_CHECKOUT_WEBHOOK_SECRET not set — skipping webhook verification');
+    return res.json({ received: true });
+  }
+
+  let event;
+  try {
+    event = stripeClient.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error('Checkout webhook signature failed:', err.message);
+    return res.status(400).json({ message: `Webhook error: ${err.message}` });
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const amountEur = (session.amount_total / 100).toFixed(2);
+    console.log(`Payment completed: session ${session.id}, €${amountEur}, status: ${session.payment_status}`);
+    // TODO: mark order as paid in your DB using session.metadata
+  }
+
+  res.json({ received: true });
 });
 
 app.use(express.json({ limit: '50mb' }));
@@ -742,7 +776,7 @@ app.post('/api/connect/onboard', async (req, res) => {
       use_case: {
         type: 'account_onboarding',
         account_onboarding: {
-          configurations: ['recipient'],
+          configurations: ['recipient', 'merchant'],
           // refresh_url: shown if the link expires before the seller completes onboarding.
           refresh_url: `${origin}/seller-dashboard`,
           // return_url: shown after the seller finishes (or skips) onboarding.
