@@ -1,7 +1,4 @@
 require('dotenv').config();
-// Force IPv4 DNS resolution — Railway defaults to IPv6 which blocks external APIs
-const dns = require('dns');
-dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const { Resend } = require('resend');
@@ -9,8 +6,6 @@ const { Pool } = require('pg');
 const Stripe = require('stripe');
 
 // ── Stripe Client ────────────────────────────────────────────────────────────
-// All Stripe requests go through this single client instance.
-// REQUIRED: Set STRIPE_SECRET_KEY in your environment variables.
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error('ERROR: STRIPE_SECRET_KEY is not set. Stripe features will not work.');
 }
