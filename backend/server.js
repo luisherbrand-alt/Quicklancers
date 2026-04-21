@@ -4,7 +4,6 @@ const cors = require('cors');
 const { Resend } = require('resend');
 const { Pool } = require('pg');
 const Stripe = require('stripe');
-const { Agent, fetch: undiciFetch } = require('undici');
 
 // ── Stripe Client ────────────────────────────────────────────────────────────
 // All Stripe requests go through this single client instance.
@@ -12,13 +11,7 @@ const { Agent, fetch: undiciFetch } = require('undici');
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error('ERROR: STRIPE_SECRET_KEY is not set. Stripe features will not work.');
 }
-
-// Force IPv4 for all Stripe API requests.
-// Railway's network stack defaults to IPv6 which can fail to reach Stripe.
-const ipv4Agent = new Agent({ connect: { family: 4 } });
-const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key', {
-  fetchFn: (url, init) => undiciFetch(url, { ...init, dispatcher: ipv4Agent }),
-});
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key');
 
 // Platform fee: percentage of each transaction kept by Quicklancers.
 // Change this value to adjust your marketplace's cut (e.g. 10 = 10%).
