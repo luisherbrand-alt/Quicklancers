@@ -48,8 +48,15 @@ export default function Navbar() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const updated = { ...user, avatar: reader.result };
+      const avatarData = reader.result;
+      const updated = { ...user, avatar: avatarData };
       login(updated);
+      // Persist avatar to database
+      fetch('/api/user/avatar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, avatar: avatarData }),
+      }).catch(() => {});
     };
     reader.readAsDataURL(file);
   }

@@ -59,6 +59,8 @@ async function initDB() {
   `);
   // Migration: add stripe_account_id for Connect payouts
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_account_id TEXT`);
+  // Migration: add avatar (base64 or URL) for profile photos
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
 
   // Insert demo user if not exists
   await pool.query(`
@@ -459,8 +461,12 @@ app.get('/api/gigs', async (req, res) => {
   const { category, search, sort } = req.query;
   let result = gigs.map(g => ({ ...g, seller: sellers.find(s => s.id === g.sellerId) }));
 
-  // Merge user-created freelancer gigs from DB
-  const { rows: userGigs } = await pool.query('SELECT * FROM freelancer_gigs');
+  // Merge user-created freelancer gigs from DB, joining with users to get avatar
+  const { rows: userGigs } = await pool.query(`
+    SELECT fg.*, u.avatar as user_avatar
+    FROM freelancer_gigs fg
+    LEFT JOIN users u ON u.id = fg."userId"
+  `);
   userGigs.forEach(ug => {
     const skillList = ug.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
     result.push({
@@ -491,6 +497,7 @@ app.get('/api/gigs', async (req, res) => {
         username: ug.username,
         initials: ug.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2),
         avatarColor: CATEGORY_COLORS[ug.category] || '#1dbf73',
+        avatar: ug.user_avatar || null,
         level: 'New Seller',
         bio: ug.bio,
         rating: 5.0,
@@ -521,7 +528,12 @@ app.get('/api/gigs/:id', async (req, res) => {
   const rawId = req.params.id;
   // User-created gig
   if (rawId.startsWith('u_')) {
-    const { rows } = await pool.query('SELECT * FROM freelancer_gigs WHERE id = $1', [rawId.replace('u_', '')]);
+    const { rows } = await pool.query(`
+      SELECT fg.*, u.avatar as user_avatar
+      FROM freelancer_gigs fg
+      LEFT JOIN users u ON u.id = fg."userId"
+      WHERE fg.id = $1
+    `, [rawId.replace('u_', '')]);
     const ug = rows[0];
     if (!ug) return res.status(404).json({ message: 'Gig not found' });
     const skillList = ug.skills.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
@@ -535,7 +547,7 @@ app.get('/api/gigs/:id', async (req, res) => {
       tags: skillList,
       imageColor: color,
       packages: [{ name: 'Basic', price: ug.hourlyRate ? parseInt(ug.hourlyRate) : 50, delivery: 3, revisions: 2, description: 'Standard service package', features: skillList.slice(0, 3) }],
-      seller: { id: ug.userId, name: ug.name, username: ug.username, initials: ug.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), avatarColor: color, level: 'New Seller', bio: ug.bio, rating: 5.0, reviewCount: 0 },
+      seller: { id: ug.userId, name: ug.name, username: ug.username, initials: ug.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2), avatarColor: color, avatar: ug.user_avatar || null, level: 'New Seller', bio: ug.bio, rating: 5.0, reviewCount: 0 },
       photos: JSON.parse(ug.photos || '[]'),
       extras: JSON.parse(ug.extras || '[]'),
       reviews: [],
@@ -628,6 +640,14 @@ app.post('/api/auth/login', async (req, res) => {
     `Name: ${user.name}\nEmail: ${email}\nTime: ${new Date().toLocaleString()}`
   );
   res.json({ user: safeUser, token: `mock-token-${user.id}` });
+});
+
+// Save user avatar to DB so it shows up on gig listings
+app.put('/api/user/avatar', async (req, res) => {
+  const { userId, avatar } = req.body;
+  if (!userId || !avatar) return res.status(400).json({ message: 'userId and avatar are required' });
+  await pool.query('UPDATE users SET avatar = $1 WHERE id = $2', [avatar, userId]);
+  res.json({ ok: true });
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {

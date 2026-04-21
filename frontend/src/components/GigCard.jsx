@@ -53,9 +53,11 @@ export default function GigCard({ gig }) {
         <div className="gig-card__seller">
           <div
             className="avatar"
-            style={{ width: 26, height: 26, background: gig.seller?.avatarColor, fontSize: 11 }}
+            style={{ width: 26, height: 26, background: gig.seller?.avatarColor, fontSize: 11, overflow: 'hidden', padding: 0 }}
           >
-            {gig.seller?.initials}
+            {gig.seller?.avatar
+              ? <img src={gig.seller.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : gig.seller?.initials}
           </div>
           <span className="gig-card__seller-name">{gig.seller?.name}</span>
           {gig.seller?.level === 'Top Rated' && (

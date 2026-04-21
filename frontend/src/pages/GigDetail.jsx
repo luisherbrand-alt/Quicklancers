@@ -104,8 +104,10 @@ export default function GigDetail() {
 
           {/* Seller row */}
           <div className="gig-seller-row">
-            <div className="avatar" style={{ width: 44, height: 44, background: gig.seller.avatarColor, fontSize: 16 }}>
-              {gig.seller.initials}
+            <div className="avatar" style={{ width: 44, height: 44, background: gig.seller.avatarColor, fontSize: 16, overflow: 'hidden', padding: 0 }}>
+              {gig.seller.avatar
+                ? <img src={gig.seller.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : gig.seller.initials}
             </div>
             <div className="gig-seller-info">
               <strong>{gig.seller.name}</strong>
@@ -165,8 +167,10 @@ export default function GigDetail() {
             <h2 className="gig-detail__section-title">About The Seller</h2>
             <div className="seller-profile-card">
               <div className="seller-profile-top">
-                <div className="avatar" style={{ width: 72, height: 72, background: gig.seller.avatarColor, fontSize: 26 }}>
-                  {gig.seller.initials}
+                <div className="avatar" style={{ width: 72, height: 72, background: gig.seller.avatarColor, fontSize: 26, overflow: 'hidden', padding: 0 }}>
+                  {gig.seller.avatar
+                    ? <img src={gig.seller.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : gig.seller.initials}
                 </div>
                 <div className="seller-profile-info">
                   <h3>{gig.seller.name}</h3>
