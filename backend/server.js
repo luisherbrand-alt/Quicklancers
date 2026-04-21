@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 const { Resend } = require('resend');
 const { Pool } = require('pg');
 const Stripe = require('stripe');
@@ -9,7 +10,10 @@ const Stripe = require('stripe');
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error('ERROR: STRIPE_SECRET_KEY is not set. Stripe features will not work.');
 }
-const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key');
+// Use Node's https module with family:4 to force IPv4 — Railway blocks IPv6 to Stripe
+const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || 'missing_key', {
+  httpClient: Stripe.createNodeHttpClient(new https.Agent({ family: 4 })),
+});
 
 // Platform fee: percentage of each transaction kept by Quicklancers.
 // Change this value to adjust your marketplace's cut (e.g. 10 = 10%).
