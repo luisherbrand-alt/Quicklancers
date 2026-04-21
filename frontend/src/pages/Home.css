@@ -37,6 +37,20 @@
   color: var(--accent);
 }
 
+.hero__guarantee {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
 .hero__sub {
   font-size: 18px;
   color: rgba(255,255,255,0.75);
