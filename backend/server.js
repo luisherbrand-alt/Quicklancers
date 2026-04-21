@@ -216,22 +216,6 @@ const sellers = [
 
 const gigs = [
   {
-    id: 1,
-    title: 'I will design a professional logo for your brand',
-    description: 'Get a stunning, custom logo that perfectly represents your brand. I specialize in modern, minimalist, and versatile logo design that works across all platforms. Every logo comes with full source files and unlimited revisions until you\'re 100% satisfied.',
-    category: 'graphics-design',
-    sellerId: 1,
-    rating: 4.9, reviewCount: 843,
-    tags: ['logo', 'branding', 'graphic design', 'vector'],
-    imageColor: '#6366f1',
-    imageEmoji: '🎨',
-    packages: [
-      { name: 'Basic', price: 25, delivery: 3, revisions: 2, description: '1 logo concept, PNG files', features: ['1 Concept', 'PNG Files', '2 Revisions'] },
-      { name: 'Standard', price: 75, delivery: 5, revisions: 5, description: '3 logo concepts, all file formats', features: ['3 Concepts', 'All File Formats', '5 Revisions', 'Source Files'] },
-      { name: 'Premium', price: 150, delivery: 7, revisions: 999, description: 'Full brand identity package', features: ['5 Concepts', 'Brand Guidelines', 'Unlimited Revisions', 'Social Media Kit', 'Priority Support'] },
-    ],
-  },
-  {
     id: 2,
     title: 'I will build a full-stack React and Node.js web application',
     description: 'I will develop a complete, production-ready web application using React for the frontend and Node.js/Express for the backend. Includes REST API, authentication, database integration, and deployment setup.',
@@ -309,22 +293,6 @@ const gigs = [
       { name: 'Basic', price: 40, delivery: 3, revisions: 1, description: '30-second background track', features: ['30 Seconds', 'Royalty Free', 'WAV + MP3', '1 Revision'] },
       { name: 'Standard', price: 100, delivery: 5, revisions: 3, description: '2-minute original track', features: ['2 Minutes', 'Custom Composition', 'Stem Files', '3 Revisions', 'Commercial License'] },
       { name: 'Premium', price: 250, delivery: 10, revisions: 5, description: 'Full song with mixing & mastering', features: ['Full Song', 'Lyrics Included', 'Mixing & Mastering', 'Unlimited Stems', 'Exclusive Rights'] },
-    ],
-  },
-  {
-    id: 7,
-    title: 'I will design a modern UI/UX for your mobile app',
-    description: 'Create a beautiful, user-friendly mobile app design that converts. I follow modern design principles and deliver fully interactive Figma prototypes with design systems, component libraries, and handoff-ready specs.',
-    category: 'graphics-design',
-    sellerId: 1,
-    rating: 4.88, reviewCount: 432,
-    tags: ['ui design', 'ux', 'figma', 'mobile app', 'prototype'],
-    imageColor: '#ec4899',
-    imageEmoji: '📱',
-    packages: [
-      { name: 'Basic', price: 60, delivery: 4, revisions: 2, description: '5 screen UI design', features: ['5 Screens', 'Figma File', '2 Revisions', 'Mobile Only'] },
-      { name: 'Standard', price: 180, delivery: 7, revisions: 4, description: '15 screens + interactive prototype', features: ['15 Screens', 'Clickable Prototype', 'Component Library', '4 Revisions'] },
-      { name: 'Premium', price: 400, delivery: 14, revisions: 999, description: 'Complete app design system', features: ['Unlimited Screens', 'Design System', 'Developer Handoff', 'Unlimited Revisions', 'Animations'] },
     ],
   },
   {
@@ -410,9 +378,6 @@ const gigs = [
 ];
 
 const reviews = [
-  { id: 1, gigId: 1, buyerName: 'Tom Richards', buyerInitials: 'TR', buyerColor: '#3b82f6', rating: 5, comment: 'Absolutely amazing work! Alex delivered beyond expectations. The logo is clean, professional and versatile. Will definitely hire again.', date: '2024-12-10' },
-  { id: 2, gigId: 1, buyerName: 'Lisa Park', buyerInitials: 'LP', buyerColor: '#10b981', rating: 5, comment: 'Fast delivery and great communication throughout. The final design was exactly what I envisioned. Highly recommended!', date: '2024-11-28' },
-  { id: 3, gigId: 1, buyerName: 'Carlos M.', buyerInitials: 'CM', buyerColor: '#f59e0b', rating: 4, comment: 'Really good work and quick revisions. Minor tweaks needed but overall very happy with the result.', date: '2024-11-15' },
   { id: 4, gigId: 2, buyerName: 'Sarah Wilson', buyerInitials: 'SW', buyerColor: '#ef4444', rating: 5, comment: 'Samantha built exactly what I needed. The code is clean and well-documented. Will come back for future projects.', date: '2024-12-05' },
   { id: 5, gigId: 2, buyerName: 'Kevin Nguyen', buyerInitials: 'KN', buyerColor: '#8b5cf6', rating: 5, comment: 'Outstanding developer. Delivered ahead of schedule and handled all edge cases. The app works perfectly.', date: '2024-11-20' },
 ];
